@@ -1,0 +1,172 @@
+screen_universe:
+  description: >
+    Screen the provided stock universe for the best investment candidates.
+
+    MANDATORY STEPS — complete every single one:
+    1. Call screen_stocks with tickers={tickers},
+       min_market_cap={min_market_cap}, sort_by='momentum'.
+    2. Call screen_stocks again with sort_by='value' to catch undervalued gems.
+    3. Merge and deduplicate results. Stocks that appear in BOTH momentum
+       AND value lists are highest-conviction — rank them first.
+    4. For every stock in the merged list, call get_stock_info to fetch its
+       full company profile, analyst targets, and insider activity.
+    5. If a sector filter is provided ({sector}), highlight stocks in that sector.
+
+    You MUST analyze every ticker provided. Do NOT skip any.
+    If a tool returns an error for one ticker, continue with the remaining tickers.
+
+    Produce a FINAL shortlist of 8-15 stocks for deep analysis.
+    At the end of your output, include a line exactly like this:
+    SHORTLIST: AAPL,MSFT,GOOGL,...
+    (comma-separated tickers, no spaces) so downstream agents can parse it.
+  expected_output: >
+    A numbered list of 8-15 stocks ranked by opportunity score, each with:
+    ticker, name, price, market cap, P/E, 3M momentum, revenue growth,
+    analyst target, and one-line thesis.
+    MUST end with a SHORTLIST: line containing comma-separated tickers.
+  agent: market_screener
+
+analyze_charts:
+  description: >
+    Perform deep technical chart analysis for EVERY stock in the shortlist.
+
+    Find the tickers from the previous task's output — look for the
+    "SHORTLIST:" line. If you cannot find it, extract tickers from the
+    numbered list (the stock symbols in parentheses).
+
+    For EACH ticker in the shortlist:
+    1. Call analyze_chart with ticker=<TICKER> and period={analysis_period}.
+    2. Document ALL indicator results: MAs, RSI, MACD, Bollinger Bands,
+       Stochastic, Fibonacci, OBV, support/resistance, volume analysis.
+    3. Rate the technical setup: STRONGLY BULLISH, BULLISH, NEUTRAL,
+       BEARISH, or STRONGLY BEARISH based on signal confluence.
+
+    CRITICAL RULES:
+    - You MUST call analyze_chart once for EACH ticker. No skipping.
+    - If a tool call fails for one ticker, report the error and CONTINUE
+      with the next ticker. Never stop early.
+    - Do NOT fabricate data. Only report what the tool returns.
+    - Analyze a MINIMUM of 8 stocks. If the shortlist has more, analyze all.
+  expected_output: >
+    A technical summary for EACH stock containing: ticker, all indicator
+    values, bullish/bearish signal count, support/resistance levels,
+    entry zone, and a BULLISH/NEUTRAL/BEARISH verdict.
+    Every shortlisted stock MUST have its own section.
+  agent: chart_analyst
+  context:
+    - screen_universe
+
+analyze_financials:
+  description: >
+    Perform deep fundamental analysis for EVERY stock in the shortlist.
+
+    Find the tickers from the screener task's output — look for the
+    "SHORTLIST:" line. If you cannot find it, extract tickers from the
+    numbered list.
+
+    For EACH ticker in the shortlist:
+    1. Call analyze_fundamentals with ticker=<TICKER>.
+    2. Document: valuation (P/E, PEG, P/B, EV/EBITDA), growth
+       (revenue & earnings trajectory), profitability (ROE, margins),
+       balance sheet (D/E, current ratio, net cash), cash flow
+       (FCF yield, FCF growth), DCF fair value vs market price,
+       analyst consensus, and dividend safety.
+    3. Rate fundamental quality: EXCELLENT, GOOD, FAIR, WEAK, or POOR.
+
+    CRITICAL RULES:
+    - You MUST call analyze_fundamentals once for EACH ticker. No skipping.
+    - If a tool call fails for one ticker, report the error and CONTINUE
+      with the next ticker. Never stop early.
+    - Do NOT fabricate financial data. Only report what the tool returns.
+    - Analyze a MINIMUM of 8 stocks.
+  expected_output: >
+    A fundamental summary for EACH stock containing: ticker, score (X/10),
+    fair value estimate, upside/downside %, key strengths, key risks,
+    analyst target comparison, and a EXCELLENT/GOOD/FAIR/WEAK/POOR verdict.
+    Every shortlisted stock MUST have its own section.
+  agent: fundamental_analyst
+  context:
+    - screen_universe
+
+forecast_prices:
+  description: >
+    Run statistical price forecasting for EVERY stock in the shortlist.
+
+    Find the tickers from the screener task's output — look for the
+    "SHORTLIST:" line. If you cannot find it, extract tickers from the
+    numbered list.
+
+    For EACH ticker in the shortlist:
+    1. Call forecast_price with ticker=<TICKER>,
+       forecast_days={forecast_days}, period={analysis_period}.
+    2. Review all three models returned:
+       - Linear regression: trend direction, R² quality, projected price
+       - Monte Carlo: probability of gain, bear case (5th pctile),
+         bull case (95th pctile), median outcome
+       - Exponential smoothing: momentum-adjusted forecast
+    3. Determine consensus: if all three models agree on direction,
+       that's high confidence. If they disagree, it's low confidence.
+    4. Compute risk/reward: expected upside vs expected downside.
+
+    CRITICAL RULES:
+    - You MUST call forecast_price once for EACH ticker. No skipping.
+    - If a tool call fails for one ticker, report the error and CONTINUE
+      with the next ticker. Never stop early.
+    - Do NOT fabricate forecast numbers. Only report what the tool returns.
+    - Forecast a MINIMUM of 8 stocks.
+  expected_output: >
+    A forecast summary for EACH stock containing: ticker, consensus price
+    target, upside probability, bear/base/bull scenarios, risk/reward
+    ratio, and confidence level (HIGH/MEDIUM/LOW based on model agreement).
+    Every shortlisted stock MUST have its own section.
+  agent: forecast_modeler
+  context:
+    - screen_universe
+
+synthesize_recommendations:
+  description: >
+    Synthesise ALL data from screening, technical analysis, fundamental
+    analysis, and price forecasting into a COMPREHENSIVE investment report.
+
+    You MUST produce analysis for EVERY stock that appears in the upstream
+    task outputs. Do not cherry-pick or skip any.
+
+    Scoring methodology (apply to EACH stock):
+    - Technical score: 30% weight (bullish signals / total signals)
+    - Fundamental score: 35% weight (fundamental score / 10)
+    - Forecast score: 35% weight (consensus upside probability)
+
+    For EACH stock, provide ALL of these:
+    1. Composite conviction score (0-100)
+    2. Recommendation: STRONG BUY (>80), BUY (60-80), HOLD (40-60),
+       SELL (<40)
+    3. Risk profile: Conservative / Moderate / Aggressive
+    4. Time horizon: Short-term (1-4 weeks), Medium-term (1-3 months),
+       Long-term (3-12 months)
+    5. Entry zone (support level or pullback target)
+    6. Price targets: Conservative, Base, Optimistic
+    7. Stop-loss level (Monte Carlo 5th percentile)
+    8. Risk/reward ratio
+    9. Position sizing suggestion (% of portfolio)
+    10. Key catalysts and risks
+
+    Rank ALL stocks from highest to lowest conviction score.
+    Present the TOP picks prominently in an executive summary.
+
+    IMPORTANT: Include a disclaimer that this is algorithmic analysis,
+    not financial advice.  Past performance does not guarantee future
+    results.  Always do your own due diligence.
+  expected_output: >
+    A Markdown report titled "📊 Stock Analyzer — Investment Watchlist" with:
+    - Executive summary (market conditions, top 3 picks, universe screened)
+    - Ranked table: Stock | Score | Recommendation | Risk | Target | Upside
+    - Detailed analysis per stock (all 10 criteria above)
+    - Portfolio allocation suggestions with position sizing
+    - Risk disclaimer
+    Report MUST cover EVERY analyzed stock, not just the top picks.
+  agent: investment_strategist
+  context:
+    - screen_universe
+    - analyze_charts
+    - analyze_financials
+    - forecast_prices

@@ -1,0 +1,18 @@
+[project]
+name = "stock-analyzer"
+version = "0.1.0"
+description = "CrewAI crew that performs deep stock analysis — technical charting (RSI, MACD, Fibonacci, candlestick patterns), fundamental valuation (DCF, P/E, growth), and statistical price forecasting with confidence intervals."
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai>=1.0.0",
+    "crewai-tools>=0.14.0",
+    "yfinance>=0.2.36",
+    "duckduckgo-search>=6.0.0",
+]
+
+[project.scripts]
+stock_analyzer = "stock_analyzer.main:run"
+run_crew = "stock_analyzer.main:run"
+
+[tool.crewai]
+type = "crew"

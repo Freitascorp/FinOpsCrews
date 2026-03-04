@@ -1,0 +1,18 @@
+[project]
+name = "crypto-pump-detector"
+version = "0.1.0"
+description = "CrewAI crew that monitors crypto markets in real-time, detects volume spikes, technical breakouts, and social buzz to identify coins before they pump."
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai>=1.0.0",
+    "crewai-tools>=0.14.0",
+    "requests>=2.31.0",
+    "duckduckgo-search>=6.0.0",
+]
+
+[project.scripts]
+crypto_pump_detector = "crypto_pump_detector.main:run"
+run_crew = "crypto_pump_detector.main:run"
+
+[tool.crewai]
+type = "crew"

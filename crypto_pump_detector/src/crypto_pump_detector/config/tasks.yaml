@@ -1,0 +1,129 @@
+scan_market:
+  description: >
+    Scan the live crypto market for coins exhibiting early pump signals,
+    including meme coins and micro-caps.  Run THREE scans to cast the
+    widest net:
+
+    SCAN 1 — General Market:
+    Use scan_market_movers with min_market_cap={min_market_cap},
+    max_market_cap={max_market_cap},
+    volume_spike_threshold={volume_spike_threshold}, top_n={top_n}.
+
+    SCAN 2 — Trending Coins:
+    Use scan_trending_coins to find coins going viral on CoinGecko
+    by search volume.  These are hype-driven and often pump before
+    they show up in volume scans.
+
+    SCAN 3 — Meme Coins:
+    Use scan_meme_coins with min_market_cap=100000 (100K) to catch
+    ultra-low-cap meme tokens before they explode.
+
+    For each top candidate across all three scans, use get_coin_details
+    to fetch deeper data (ATH distance, supply metrics, exchange
+    presence, community size).
+
+    Merge and deduplicate results.  Prioritise coins that appear in
+    multiple scans (e.g. trending AND high volume = strong signal).
+  expected_output: >
+    A numbered list of 10-20 coins ranked by pump potential, each with:
+    coin name, ticker, current price, 1h/24h change, volume/mcap ratio,
+    pump_score (if available), scan source (general/trending/meme),
+    and a one-line reason why it was flagged.
+  agent: volume_scanner
+
+analyze_candidates:
+  description: >
+    For each coin in the shortlist, run a full technical analysis.
+
+    1. Use the analyze_technicals tool with the coin's Binance symbol
+       (e.g. 'SOLUSDT', 'PEPEUSDT').
+    2. Focus on:
+       - RSI: Is it in the momentum zone (45-70) or oversold (<35)?
+       - MACD: Is there a bullish crossover on the 4h chart?
+       - Bollinger Bands: Is a squeeze forming (bandwidth <5%)?
+       - Volume trend: Is it SURGING or INCREASING?
+    3. Flag any coin with 3+ bullish signals as a strong candidate.
+    4. Note warning signs (RSI >80 = overbought, MACD bearish crossover).
+
+    Analyze all shortlisted coins. Skip coins not available on Binance.
+  expected_output: >
+    A technical summary for each coin with: symbol, RSI value + zone,
+    MACD status + crossover, Bollinger position + squeeze flag,
+    volume trend, number of bullish signals out of 6, and a
+    BULLISH / NEUTRAL / BEARISH verdict.
+  agent: technical_analyst
+  context:
+    - scan_market
+
+gauge_sentiment:
+  description: >
+    For each shortlisted coin, search for recent news and social sentiment.
+
+    1. Use the search_crypto_sentiment tool with the coin's common name
+       (e.g. 'Solana', 'Pepe', 'Bonk', 'dogwifhat').
+    2. Look for catalysts that could fuel a pump:
+       - New exchange listings (Binance, Coinbase, Kraken)
+       - Partnership or integration announcements
+       - Viral social media moments or influencer mentions
+       - Whale wallet accumulation reports
+       - Upcoming token unlocks or burns
+       - Meme virality — TikTok/Twitter trends, Elon mentions
+       - Community size explosion (Discord/Telegram growth)
+       - Presale or airdrop announcements
+    3. Also flag red flags: SEC investigations, hack reports, rug-pull
+       accusations, team dumps, honeypot warnings.
+
+    For meme coins, weight social hype MORE heavily than fundamentals —
+    meme coins pump on narrative, not revenue.
+
+    Rate each coin's sentiment from STRONGLY BEARISH to STRONGLY BULLISH.
+  expected_output: >
+    A sentiment report per coin with: overall sentiment rating,
+    bullish keyword count vs bearish keyword count, key headlines
+    (max 3 per coin), and identified catalysts or red flags.
+  agent: sentiment_scout
+  context:
+    - scan_market
+
+aggregate_signals:
+  description: >
+    Combine all data from the volume scan (general + trending + meme),
+    technical analysis, and sentiment research into a final ranked
+    watchlist.
+
+    Scoring methodology:
+    - Volume anomaly score: 25% weight (pump_score from scanner)
+    - Technical setup score: 35% weight (bullish signals / 6)
+    - Sentiment score: 25% weight (bullish/bearish rating)
+    - Trending / hype factor: 15% weight (appeared in trending scan,
+      meme-scan overlap, community buzz)
+
+    SEPARATE the output into two sections:
+    A) "🚀 Momentum Plays" — higher-cap coins ($10M+) with strong
+       technicals and volume.  These are safer swing trades.
+    B) "🐸 Degen / Meme Plays" — low-cap meme coins with viral
+       potential.  Higher risk, higher reward.  Flag rug-pull risk.
+
+    For each coin, provide:
+    1. Composite score (0-100)
+    2. Recommendation: BUY (score >70), WATCH (score 40-70), AVOID (<40)
+    3. Entry strategy: suggested entry zone, take-profit targets, stop-loss
+    4. Risk assessment: what could go wrong (especially rug-pull for memes)
+    5. Time horizon: when the setup might play out
+
+    IMPORTANT: Include a disclaimer that this is algorithmic analysis,
+    not financial advice.  Crypto is highly volatile and speculative.
+    Meme coins are EXTREMELY risky — never invest more than you can
+    afford to lose.
+  expected_output: >
+    A Markdown report titled "🚀 Crypto Pump Detector — Watchlist" with:
+    - Executive summary (market conditions, number of candidates screened)
+    - Section A: Momentum Plays ranked table + detailed analysis
+    - Section B: Degen/Meme Plays ranked table + detailed analysis
+    - Each entry: Coin | Score | Recommendation | Key Signals | Risk
+    - Risk disclaimer
+  agent: signal_aggregator
+  context:
+    - scan_market
+    - analyze_candidates
+    - gauge_sentiment
