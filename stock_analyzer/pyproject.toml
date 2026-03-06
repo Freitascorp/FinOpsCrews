@@ -7,7 +7,7 @@ dependencies = [
     "crewai>=1.0.0",
     "crewai-tools>=0.14.0",
     "yfinance>=0.2.36",
-    "duckduckgo-search>=6.0.0",
+    "ddgs>=6.0.0",
 ]
 
 [project.scripts]

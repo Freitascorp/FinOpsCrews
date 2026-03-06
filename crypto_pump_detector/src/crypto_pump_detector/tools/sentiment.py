@@ -36,9 +36,9 @@ def search_crypto_sentiment(coin_name: str) -> str:
                    'Pepe', 'BONK'). Use the common name for better results.
     """
     try:
-        from duckduckgo_search import DDGS
+        from ddgs import DDGS
     except ImportError:
-        return "ERROR: duckduckgo-search package not installed. Run: pip install duckduckgo-search"
+        return "ERROR: ddgs package not installed. Run: pip install ddgs"
 
     queries = [
         f"{coin_name} crypto news today",
@@ -53,7 +53,7 @@ def search_crypto_sentiment(coin_name: str) -> str:
     for q in queries:
         _throttle()
         try:
-            results = ddgs.text(q, max_results=8, timelimit="w")  # last week
+            results = ddgs.text(q, region="en-us", max_results=8, timelimit="w")  # last week
         except Exception as exc:
             all_results.append(f"Search error for '{q}': {exc}")
             continue
